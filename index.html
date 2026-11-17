@@ -373,6 +373,12 @@ mark { background: linear-gradient(transparent 58%, color-mix(in srgb, var(--til
 .act-sm svg { width: 20px; height: 20px; color: var(--cobalt); }
 .act-sm:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 var(--line); }
 .act-sm:disabled { opacity: .4; }
+.actbar.five { gap: 6px; }
+.actbar.five .btn { flex-direction: column; gap: 3px; padding: 4px 6px; font-size: 13px; line-height: 1.1; }
+.actbar.five .btn svg { width: 20px; height: 20px; }
+.actbar.five .act-sm { flex-basis: 56px; }
+.again-btn { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 12px; border-radius: 99px; border: 1px solid var(--line); background: var(--card); color: var(--ink); font-weight: 700; font-size: 14px; white-space: nowrap; }
+.again-btn svg { width: 17px; height: 17px; color: var(--cobalt); }
 .flash { display: flex; align-items: center; gap: 8px; margin-top: -10px; padding: 6px 6px 6px 14px; border-radius: 12px; background: var(--cobalt-soft); color: var(--ink); font-size: 15px; font-weight: 700; animation: fade .2s ease; }
 .flash span { flex: 1; }
 button.week { width: 100%; padding: 0; border: 0; background: none; text-align: left; }
@@ -443,8 +449,14 @@ button.stat { background: none; border: 0; border-radius: 0; text-align: left; c
   .stat .num { font-size: 26px; }
   .rec-card .num { font-size: 22px; }
   .act-sm { flex-basis: 56px; }
+  .actbar.five .act-sm { flex-basis: 52px; }
+  .actbar.five .btn { font-size: 12px; }
   .actbar .btn { font-size: 16px; }
   .def { font-size: 20px; }
+}
+@media (max-width: 340px) {
+  .again-btn span { display: none; }
+  .again-btn { width: 38px; padding: 0; justify-content: center; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
@@ -1219,6 +1231,7 @@ const ICON = {
   book: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/><path d="M8.5 7.5h7M8.5 11h5"/></svg>',
   loop: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8"/><path d="M4 3.5V8h4.5"/><path d="M4 13a8 8 0 0 0 14.3 4.9L20 16"/><path d="M20 20.5V16h-4.5"/></svg>',
   play: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.2v13.6a1 1 0 0 0 1.5.86l11-6.8a1 1 0 0 0 0-1.72l-11-6.8A1 1 0 0 0 8 5.2z"/></svg>',
+  restart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3L4.5 9"/><path d="M4.5 4v5h5"/></svg>',
   cal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>',
   undo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>',
   down: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="M7 10.5l5 5 5-5"/><path d="M5 20h14"/></svg>',
@@ -1245,7 +1258,7 @@ function normSet(x) {
   return {
     id: String(x.id || newId()).slice(0, 40), ids, level: LV[x.level] ? x.level : "mid", src: x.src === "fresh" ? "fresh" : "",
     made: DATE_RE.test(x.made) ? x.made : "", done: !!x.done && !!ids.length, doneAt: DATE_RE.test(x.doneAt) ? x.doneAt : "",
-    started: !!x.started, learned: !!x.learned, review: !!x.review, pending, best: +x.best || 0, total: +x.total || 0,
+    started: !!x.started, learned: !!x.learned, review: !!x.review, pending, best: +x.best || 0, total: +x.total || 0, pos: Math.max(0, Math.min(4, Math.floor(+x.pos || 0))),
   };
 }
 function normalize(s) {
@@ -1391,7 +1404,7 @@ function nextIds(level, exclude) {
   if (review) { add(weakest([...learned].filter(w => BY.get(w).lv === level), 5)); add(weakest([...learned], 5)); }
   return { ids, review };
 }
-const makeSet = (level, ids, extra) => Object.assign({ id: newId(), ids, level, src: "", made: dkey(), done: false, doneAt: "", started: false, learned: false, review: false, pending: !ids.length, best: 0, total: 0 }, extra || {});
+const makeSet = (level, ids, extra) => Object.assign({ id: newId(), ids, level, src: "", made: dkey(), done: false, doneAt: "", started: false, learned: false, review: false, pending: !ids.length, best: 0, total: 0, pos: 0 }, extra || {});
 function makeCurrent(set, keepOld) {
   const old = curSet();
   if (old && keepOld && old.id !== set.id) { state.undo.push(old.id); state.undo = state.undo.slice(-20); }
@@ -1497,7 +1510,8 @@ async function startCurrent() {
     note = got.note || "";
   }
   c.started = true; persist();
-  startSession("lesson", c.ids.slice(), c.learned ? "quiz" : "learn", c.id);
+  // Continue picks up at the word you stopped on.
+  startSession("lesson", c.ids.slice(), c.learned ? "quiz" : "learn", c.id, c.learned ? 0 : c.pos);
   if (note) { session.note = note; render(); }
 }
 
@@ -1970,8 +1984,8 @@ function buildQuiz(ids, kind) {
   return out;
 }
 function newCur() { return { state: "ask", picked: -1, spelled: [], matched: [], sel: null, missed: [], anim: true, wrong: null, played: false }; }
-function startSession(kind, ids, phase, setId) {
-  session = { kind, setId: setId || null, date: dkey(), ids, phase, li: 0, queue: phase === "quiz" ? buildQuiz(ids, kind) : [], qi: 0, cur: newCur(), stats: { correct: 0, total: 0, xp: 0, combo: 0, best: 0 }, res: {}, learnAnim: true };
+function startSession(kind, ids, phase, setId, li) {
+  session = { kind, setId: setId || null, date: dkey(), ids, phase, li: Math.max(0, Math.min(ids.length - 1, li || 0)), queue: phase === "quiz" ? buildQuiz(ids, kind) : [], qi: 0, cur: newCur(), stats: { correct: 0, total: 0, xp: 0, combo: 0, best: 0 }, res: {}, learnAnim: true };
   render(); scrollTo(0, 0);
 }
 
@@ -2002,6 +2016,23 @@ function wordListHTML(ids, withMeaning) {
   return `<ul class="today-words">${ids.map(id => { const x = BY.get(id); return `<li><b>${esc(x.w)}</b><small>${esc(x.p)} · ${esc(LV[x.lv].name)}</small>${withMeaning ? `<span>${esc(x.d)}</span>` : ""}</li>`; }).join("")}</ul>`;
 }
 const pillHTML = (act, label, icon) => `<button class="pill-btn" data-act="${act}" ${busy ? "disabled" : ""}>${icon || ""}<span>${label}</span></button>`;
+// Start over: go back to the first word and learn these five again, then take the quiz.
+function restartSet() {
+  const s = session;
+  if (busy) return;
+  closeDialog(); stopFx();
+  if (s && s.kind === "review") { startSession("review", s.ids.slice(), "quiz"); SFX.tap(); return; }
+  const c = s && s.setId ? setById(s.setId) : curSet();
+  if (!c || c.pending) return;
+  c.started = true; c.pos = 0;
+  if (!c.done) c.learned = false;
+  persist(); SFX.tap();
+  startSession("lesson", c.ids.slice(), "learn", c.id, 0);
+}
+function savePos() {
+  const s = session; if (!s || s.kind !== "lesson") return;
+  const d = setById(s.setId); if (d && !d.done && d.pos !== s.li) { d.pos = s.li; persist(); }
+}
 const smallBtn = (act, label, icon, off) => `<button class="act-sm" data-act="${act}" ${busy || off ? "disabled" : ""}>${icon}<span>${label}</span></button>`;
 function renderHome() {
   const today = dkey();
@@ -2013,28 +2044,28 @@ function renderHome() {
   const ids = c.ids, setLv = LV[c.level].name;
   const pills = [];
   // The buttons you need most sit together at the top: the main step, the quiz, new words and undo.
-  let main, sub, title = "Your five words", list, quizBtn = "", newBtn = smallBtn("refresh", "New words", ICON.loop);
+  let main, sub, title = "Your five words", list, quizBtn = "", newBtn = smallBtn("refresh", "New words", ICON.loop), againBtn = "";
   if (c.done) {
     title = "Words learned!";
     sub = `You finished these ${setLv} words${c.total ? ` with ${c.best} of ${c.total} right first try` : ""}. Get five new words, or take the quiz again.`;
     list = wordListHTML(ids, true);
     main = `<button class="btn" data-act="refresh" ${busy ? "disabled" : ""}>${ICON.loop} 5 new words</button>`;
     quizBtn = smallBtn("quiz-again", "Quiz", ICON.play); newBtn = "";
-    pills.push(pillHTML("relearn", "See the words again"));
   } else if (c.learned) {
     sub = "You've met these words. Take the quiz to lock them in.";
     list = wordListHTML(ids, true);
     main = `<button class="btn" data-act="start" ${busy ? "disabled" : ""}>${ICON.play} Take the quiz</button>`;
-    pills.push(pillHTML("relearn", "See the words again"));
   } else {
-    sub = c.started ? "You're partway through these words. Pick up where you left off."
+    sub = c.started ? `You're on word ${(c.pos || 0) + 1} of ${ids.length}. Tap Continue to pick up where you left off, or Start over to begin again from the first word.`
       : c.review ? `You've learned every ${setLv} word in the list, so these are the ${setLv} words you find hardest. Try another level for new words.`
       : `Learn these five ${setLv} words, then play a quick quiz. Already know them? Tap Quiz to test yourself, or New words.`;
     list = wordListHTML(ids, false);
     main = `<button class="btn" data-act="start" ${busy ? "disabled" : ""}>${ICON.play} ${c.started ? "Continue" : "Learn words"}</button>`;
     quizBtn = smallBtn("quiz-now", "Quiz", ICON.play);
   }
-  const bar = `<div class="actbar">${main}${quizBtn}${newBtn}${smallBtn("undo", "Undo", ICON.undo, !state.undo.length)}</div>`;
+  if (c.started || c.learned || c.done) againBtn = smallBtn("restart", "Start over", ICON.restart);
+  const nBtns = 2 + !!againBtn + !!quizBtn + !!newBtn;
+  const bar = `<div class="actbar ${nBtns >= 5 ? "five" : ""}">${main}${againBtn}${quizBtn}${newBtn}${smallBtn("undo", "Undo", ICON.undo, !state.undo.length)}</div>`;
   const lvLearned = k => [...learned].filter(id => BY.get(id).lv === k).length;
   const cur = state.level;
   const picker = `<div class="lvl">
@@ -2134,6 +2165,7 @@ function renderLearn() {
     <div class="qtop">
       <button class="icon-btn" data-act="quit" aria-label="Close lesson">${ICON.close}</button>
       <div class="segs" aria-label="Word ${s.li + 1} of ${s.ids.length}">${s.ids.map((_, i) => `<i class="${i <= s.li ? "on" : ""}"></i>`).join("")}</div>
+      ${s.li > 0 ? `<button class="again-btn" data-act="restart" aria-label="Start over from the first word">${ICON.restart}<span>Start over</span></button>` : ""}
     </div>
     <article class="learn">
       ${s.note && s.li === 0 ? `<p class="notice">${esc(s.note)}</p>` : ""}
@@ -2158,6 +2190,7 @@ function quizTop() {
   return `<div class="qtop">
     <button class="icon-btn" data-act="quit" aria-label="Leave quiz">${ICON.close}</button>
     <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><i style="width:${pct}%"></i></div>
+    <button class="again-btn" data-act="restart" aria-label="Start over from the first word">${ICON.restart}<span>Start over</span></button>
     <span class="combo ${s.stats.combo >= 2 && s.cur.state === "done" && s.cur.correct ? "hot" : ""}" title="Answers in a row">${s.stats.combo >= 2 ? ICON.flame + s.stats.combo : ""}</span>
   </div>`;
 }
@@ -2261,7 +2294,7 @@ function renderResults() {
       </div>
       <ul class="wl">${s.ids.map(id => { const ok = s.res[id] !== false; return `<li><span class="w">${esc(id)}</span>${dots(mastery(id).m)}<span class="st ${ok ? "y" : "n"}">${ok ? ICON.check + "Got it" : ICON.loop + "Practise more"}</span></li>`; }).join("")}</ul>
       <div class="btn-col">
-        ${s.kind === "lesson" ? `<button class="btn" data-act="refresh-home">${ICON.loop} Get 5 new words</button><button class="btn alt" data-act="quiz-again">Take the quiz again</button>` : ""}
+        ${s.kind === "lesson" ? `<button class="btn" data-act="refresh-home">${ICON.loop} Get 5 new words</button><button class="btn alt" data-act="quiz-again">Take the quiz again</button><button class="btn alt" data-act="restart">${ICON.restart} Start over from the first word</button>` : `<button class="btn alt" data-act="restart">${ICON.restart} Do this review again</button>`}
         <button class="btn ${s.kind === "lesson" ? "alt" : ""}" data-act="home">Back home</button>
         <button class="link" data-act="book">Open my word book</button>
       </div>
@@ -2383,11 +2416,19 @@ document.addEventListener("click", e => {
     case "book": stopFx(); session = null; view = "book"; bookOpen = null; render(); scrollTo(0, 0); break;
     case "home": goHome(); break;
     case "bopen": bookOpen = bookOpen === b.dataset.id ? null : b.dataset.id; renderBook(); break;
-    case "prev": if (s && s.li > 0) { s.li--; s.learnAnim = true; render(); scrollTo(0, 0); } break;
+    case "prev": if (s && s.li > 0) { s.li--; s.learnAnim = true; savePos(); render(); scrollTo(0, 0); } break;
+    case "restart":
+      // In the middle of a quiz, check first so a stray tap doesn't throw away your answers.
+      if (s && s.phase === "quiz" && (s.qi > 0 || s.cur.state === "done") && !b.dataset.sure) {
+        dialog = `<div class="scrim" data-act="dlg-stay"><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-t" data-act="noop"><h2 id="dlg-t" class="h-l" style="font-size:24px">Start over?</h2><p class="sub">${s.kind === "review" ? "The review starts again from the first question." : "You'll go back to the first word and learn all five again, then take the quiz."} Your answers in this round won't count.</p><div class="row"><button class="btn" data-act="restart" data-sure="1">Start over</button><button class="btn alt" data-act="dlg-stay">Keep going</button></div></div></div>`;
+        app.insertAdjacentHTML("beforeend", dialog);
+        const k = document.querySelector(".dialog .btn"); if (k) k.focus();
+      } else restartSet();
+      break;
     case "next-word":
       if (!s) break;
       SFX.tap();
-      if (s.li < s.ids.length - 1) { s.li++; s.learnAnim = true; render(); scrollTo(0, 0); }
+      if (s.li < s.ids.length - 1) { s.li++; s.learnAnim = true; savePos(); render(); scrollTo(0, 0); }
       else {
         if (s.kind === "lesson") { const d = setById(s.setId); if (d && !d.learned) { d.learned = true; persist(); } }
         s.phase = "quiz"; s.queue = buildQuiz(s.ids, s.kind); s.qi = 0; s.cur = newCur(); render(); scrollTo(0, 0);
